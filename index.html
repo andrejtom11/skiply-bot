@@ -36,64 +36,85 @@
       align-items: center;
       gap: 12px;
     }
-    #chat-header .logo { font-size: 22px; font-weight: 800; color: #7c3aed; }
-    #chat-header .tagline { font-size: 12px; color: #666; }
+    #chat-header .logo { font-size: 22px; font-weight: 800; color: #7c3aed; letter-spacing: -0.5px; }
+    #chat-header .tagline { font-size: 12px; color: #666; margin-top: 2px; }
     #chat-header .dot { width: 10px; height: 10px; background: #22c55e; border-radius: 50%; margin-left: auto; }
-    #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
     .msg { display: flex; flex-direction: column; max-width: 80%; }
     .msg.bot { align-self: flex-start; }
     .msg.user { align-self: flex-end; }
-    .bubble { padding: 12px 16px; border-radius: 14px; font-size: 15px; line-height: 1.5; }
+    .bubble { padding: 12px 16px; border-radius: 14px; font-size: 15px; line-height: 1.55; white-space: pre-wrap; }
     .msg.bot .bubble { background: #252525; border-bottom-left-radius: 4px; color: #f0f0f0; }
     .msg.user .bubble { background: #7c3aed; border-bottom-right-radius: 4px; color: #fff; }
-    .typing-indicator { display: flex; gap: 4px; padding: 12px 16px; background: #252525; border-radius: 14px; border-bottom-left-radius: 4px; width: fit-content; }
+    .typing-indicator { display: flex; gap: 5px; padding: 14px 16px; background: #252525; border-radius: 14px; border-bottom-left-radius: 4px; width: fit-content; }
     .typing-indicator span { width: 8px; height: 8px; background: #666; border-radius: 50%; animation: bounce 1.2s infinite; }
     .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
     .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+    @keyframes bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-7px); } }
     #input-area { display: flex; padding: 16px; border-top: 1px solid #2a2a2a; gap: 10px; background: #111; }
-    #user-input { flex: 1; background: #252525; border: 1px solid #333; color: #f0f0f0; border-radius: 10px; padding: 12px 16px; font-size: 15px; outline: none; resize: none; }
+    #user-input {
+      flex: 1;
+      background: #252525;
+      border: 1px solid #333;
+      color: #f0f0f0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      resize: none;
+      min-height: 48px;
+      max-height: 120px;
+    }
     #user-input:focus { border-color: #7c3aed; }
-    #send-btn { background: #7c3aed; color: white; border: none; border-radius: 10px; padding: 0 20px; font-size: 18px; cursor: pointer; }
+    #send-btn {
+      background: #7c3aed;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 0 22px;
+      font-size: 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
     #send-btn:hover { background: #6d28d9; }
-    #send-btn:disabled { background: #444; cursor: not-allowed; }
-    .powered-by { font-size: 11px; color: #444; text-align: center; padding: 8px; }
+    #send-btn:disabled { background: #3a3a3a; cursor: not-allowed; }
+    .powered-by { font-size: 11px; color: #333; text-align: center; padding: 8px; background: #111; }
   </style>
 </head>
 <body>
 <div id="chat-container">
   <div id="chat-header">
-    <div><div class="logo">Skiply</div><div class="tagline">Skip the boring parts.</div></div>
+    <div>
+      <div class="logo">Skiply</div>
+      <div class="tagline">Skip the boring parts.</div>
+    </div>
     <div class="dot"></div>
   </div>
   <div id="messages"></div>
   <div id="input-area">
-    <textarea id="user-input" placeholder="Type your message..."></textarea>
+    <textarea id="user-input" placeholder="Type your message..." rows="1"></textarea>
     <button id="send-btn">&#10148;</button>
   </div>
   <div class="powered-by">Powered by Claude AI</div>
 </div>
+
 <script>
-  const CLAUDE_API_KEY = 'YOUR_CLAUDE_API_KEY_HERE';
+  // Make.com webhook URL — this is the ONLY thing you need to configure
   const MAKE_WEBHOOK_URL = 'YOUR_MAKE_WEBHOOK_URL_HERE';
-  const systemPrompt = `You are Skiply's friendly conversational assistant. Skiply is an automation service that helps businesses eliminate repetitive manual work. Use SPIN selling and the Socratic method.
 
-FLOW:
-1. Introduce yourself, ask for name and role.
-2. Ask about their typical workday (Monday morning question).
-3. Ask 3-4 follow-ups to uncover repetitive tasks. Reflect back in their words.
-4. Based on awareness level: educate, spark curiosity, or validate.
-5. Collect: name, email, company, role, pain_point.
-6. Close: hot=book consultation, warm=offer audit report, cold=plant a seed.
-7. When you have all lead data, append this EXACT block at end of message:
-LEAD_DATA:{"name":"...","email":"...","company":"...","role":"...","pain_point":"...","lead_temp":"hot|warm|cold","meeting_agreed":"yes|no","followup_type":"consultation|report|seed"}
-
-RULES: Auto-detect Czech/English. One question at a time. Warm, never salesy. Max 3 sentences per reply.`;
-
+  // Conversation history (stored in browser memory only)
   let history = [];
-  let webhookSent = false;
 
-  const msgs = document.getElementById('messages');
+  const msgsEl = document.getElementById('messages');
   const inp = document.getElementById('user-input');
   const btn = document.getElementById('send-btn');
 
@@ -104,84 +125,98 @@ RULES: Auto-detect Czech/English. One question at a time. Warm, never salesy. Ma
     b.className = 'bubble';
     b.innerText = text;
     d.appendChild(b);
-    msgs.appendChild(d);
-    msgs.scrollTop = msgs.scrollHeight;
+    msgsEl.appendChild(d);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
   }
 
   function showTyping() {
     const d = document.createElement('div');
-    d.className = 'msg bot'; d.id = 'typing';
+    d.className = 'msg bot';
+    d.id = 'typing';
     d.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
-    msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight;
+    msgsEl.appendChild(d);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
   }
 
-  function removeTyping() { const t = document.getElementById('typing'); if(t) t.remove(); }
-
-  function handleLead(text) {
-    if (webhookSent) return text;
-    const m = text.match(/LEAD_DATA:({[sS]*?})/);
-    if (m) {
-      try {
-        const data = JSON.parse(m[1]);
-        fetch(MAKE_WEBHOOK_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data) })
-          .then(() => { webhookSent = true; })
-          .catch(e => console.error('Webhook error:', e));
-        return text.replace(/LEAD_DATA:{[sS]*?}/, '').trim();
-      } catch(e) { console.error(e); }
-    }
-    return text;
+  function removeTyping() {
+    const t = document.getElementById('typing');
+    if (t) t.remove();
   }
 
-  async function callClaude(msgs_arr) {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': CLAUDE_API_KEY,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({ model: 'claude-3-5-haiku-20241022', max_tokens: 1024, system: systemPrompt, messages: msgs_arr })
-    });
-    return await r.json();
-  }
+  async function send(userText) {
+    if (!userText.trim()) return;
 
-  async function send(text) {
-    if (!text.trim()) return;
-    history.push({ role:'user', content: text });
-    addMsg('user', text);
-    inp.value = ''; btn.disabled = true;
+    history.push({ role: 'user', content: userText });
+    addMsg('user', userText);
+    inp.value = '';
+    inp.style.height = 'auto';
+    btn.disabled = true;
     showTyping();
+
     try {
-      const data = await callClaude(history);
+      const response = await fetch(MAKE_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history })
+      });
+
+      const data = await response.json();
       removeTyping();
-      if (data.content && data.content[0]) {
-        let t = handleLead(data.content[0].text);
-        history.push({ role:'assistant', content: t });
-        addMsg('bot', t);
-      } else { addMsg('bot', 'Something went wrong. Please try again.'); }
-    } catch(e) { removeTyping(); addMsg('bot', 'Connection error. Please try again.'); console.error(e); }
-    btn.disabled = false; inp.focus();
+
+      const reply = data.reply || data.message || data.text || 'Sorry, I could not get a response.';
+      history.push({ role: 'assistant', content: reply });
+      addMsg('bot', reply);
+
+    } catch (e) {
+      removeTyping();
+      addMsg('bot', 'Connection error. Please try again in a moment.');
+      console.error('Error:', e);
+      // Remove failed user message from history
+      history.pop();
+    }
+
+    btn.disabled = false;
+    inp.focus();
   }
 
+  // Auto-resize textarea
+  inp.addEventListener('input', () => {
+    inp.style.height = 'auto';
+    inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
+  });
+
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send(inp.value);
+    }
+  });
+
+  btn.addEventListener('click', () => send(inp.value));
+
+  // Start conversation automatically
   async function start() {
     showTyping();
     try {
-      const data = await callClaude([{ role:'user', content:'Hello' }]);
+      const response = await fetch(MAKE_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: '__START__' }] })
+      });
+      const data = await response.json();
       removeTyping();
-      if (data.content && data.content[0]) {
-        const t = data.content[0].text;
-        history.push({ role:'assistant', content: t });
-        addMsg('bot', t);
+      const reply = data.reply || data.message || data.text;
+      if (reply) {
+        history.push({ role: 'assistant', content: reply });
+        addMsg('bot', reply);
       }
     } catch(e) {
       removeTyping();
-      addMsg('bot', "Hi! I'm Skiply's assistant — here to help you discover how much time you could save by automating repetitive work. What's your name and what do you do?");
+      addMsg('bot', "Hi! I'm Skiply's assistant. I help people discover how much time they could save by automating repetitive work.\n\nCould you start by telling me your name and what you do?");
+      console.error(e);
     }
   }
 
-  btn.addEventListener('click', () => send(inp.value));
-  inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(inp.value); } });
   start();
 </script>
 </body>
